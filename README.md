@@ -51,6 +51,46 @@ A centralized workflow for building and testing LumeWeb portal plugins. This wor
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Release Workflow
+
+A centralized workflow for creating releases using Knope across LumeWeb repositories. This workflow provides a standardized release process that handles version management, changelog generation, and GitHub release creation.
+
+**Workflow File**: `.github/workflows/release.yml`
+
+**Documentation**: See [docs/release-workflow/](./docs/release-workflow/)
+- [Overview & Quick Start](./docs/release-workflow/README.md)
+- [Receiver Template](./docs/release-workflow/receiver-template.yml)
+
+#### Features
+- Automated version bumping based on conventional commits
+- Automatic changelog generation
+- Git tag and GitHub release creation
+- Configurable Knope version
+- Manual or automated triggers
+
+#### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Repository                                                 │
+│  .github/workflows/release.yml                              │
+│  - Triggers on workflow_dispatch                            │
+│  - Calls centralized release workflow                       │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     │ workflow_call
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Central: LumeWeb/workflows/.github/workflows/               │
+│           release.yml                                        │
+│  - Checks out repository with full history                  │
+│  - Installs Knope                                           │
+│  - Sets up Git configuration                                │
+│  - Runs knope release to create release                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### UI Update Workflow
 
 A centralized workflow for updating Go UI dependencies across multiple portal plugin repositories and apps.
@@ -111,6 +151,22 @@ A centralized workflow for updating Go UI dependencies across multiple portal pl
    Uncomment the `with:` section in the workflow and add your dependencies.
 
 See the [Build Plugin Workflow Documentation](./docs/build-plugin-workflow/README.md) for detailed instructions.
+
+### Setting Up a Release Workflow
+
+1. **Copy the release template** to your repository:
+   ```bash
+   curl -o .github/workflows/release.yml \
+     https://raw.githubusercontent.com/LumeWeb/workflows/main/docs/release-workflow/receiver-template.yml
+   ```
+
+2. **Add the required secret**:
+   - Add `PAT` to your repository secrets (a GitHub Personal Access Token with `repo` permissions)
+
+3. **Configure Knope**:
+   - Create a `knope.toml` file in your repository root with the appropriate configuration
+
+See the [Release Workflow Documentation](./docs/release-workflow/README.md) for detailed instructions.
 
 ### Setting Up a Receiver Repository (UI Updates)
 
