@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      knope_version:
+        description: 'Version of Knope to use'
+        required: false
+        type: string
+        default: '0.21.7'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - name: Install Knope
+        uses: knope-dev/action@v2.1.0
+        with:
+          version: ${{ inputs.knope_version }}
+
+      - name: Setup Git
+        uses: LumeWeb/workflows/.github/actions/setup-git@develop
+
+      - name: Create Release
+        run: knope release --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
