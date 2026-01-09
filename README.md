@@ -11,6 +11,46 @@ This repository contains:
 
 ## Available Workflows
 
+### Build Plugin Workflow
+
+A centralized workflow for building and testing LumeWeb portal plugins. This workflow provides a standardized build process with support for additional plugin dependencies.
+
+**Workflow File**: `.github/workflows/build-plugin.yml`
+
+**Documentation**: See [docs/build-plugin-workflow/](./docs/build-plugin-workflow/)
+- [Overview & Quick Start](./docs/build-plugin-workflow/README.md)
+- [Receiver Template](./docs/build-plugin-workflow/receiver-template.yml)
+
+#### Features
+- Standardized build process for all portal plugins
+- Automatic module replacement for local development
+- Support for additional plugin dependencies (comma-separated)
+- Triggers on push and pull requests
+
+#### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Plugin Repository                                          │
+│  .github/workflows/build.yml                                │
+│  - Triggers on push/PR                                      │
+│  - Calls centralized build workflow                         │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     │ workflow_call
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Central: LumeWeb/workflows/.github/workflows/               │
+│           build-plugin.yml                                   │
+│  - Sets up Go 1.22.1                                         │
+│  - Installs XPortal                                         │
+│  - Extracts repo name                                       │
+│  - Builds plugin with module replacements                   │
+│  - Supports additional dependencies via --with flags        │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### UI Update Workflow
 
 A centralized workflow for updating Go UI dependencies across multiple portal plugin repositories and apps.
@@ -59,7 +99,20 @@ A centralized workflow for updating Go UI dependencies across multiple portal pl
 
 ## Quick Start
 
-### Setting Up a Receiver Repository
+### Setting Up a Plugin Repository
+
+1. **Copy the build template** to your repository:
+   ```bash
+   curl -o .github/workflows/build.yml \
+     https://raw.githubusercontent.com/LumeWeb/workflows/main/docs/build-plugin-workflow/receiver-template.yml
+   ```
+
+2. **Add dependencies** (if your plugin requires them):
+   Uncomment the `with:` section in the workflow and add your dependencies.
+
+See the [Build Plugin Workflow Documentation](./docs/build-plugin-workflow/README.md) for detailed instructions.
+
+### Setting Up a Receiver Repository (UI Updates)
 
 1. **Copy the receiver template** to your repository:
    ```bash

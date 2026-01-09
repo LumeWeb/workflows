@@ -1,0 +1,51 @@
+name: Build Plugin
+
+on:
+  workflow_call:
+    inputs:
+      additional_dependencies:
+        description: 'Additional plugin dependencies to include (comma-separated, format: go.lumeweb.com/plugin-name,go.lumeweb.com/another-plugin)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup Go
+      uses: LumeWeb/workflows/.github/actions/setup-go@develop
+      with:
+        go_version: 1.22.1
+    - name: Install XPortal
+      run: |
+        go install go.lumeweb.com/xportal/cmd/xportal@latest
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+    - name: Extract Repo Name
+      id: repo-name
+      run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d '/' -f 2)" >> $GITHUB_OUTPUT
+    - name: Build
+      run: |
+          PLUGIN=$(readlink -f .)
+          WITH_ARGS="--with go.lumeweb.com/${{ steps.repo-name.outputs.REPO_NAME }}"
+          
+          # Add additional dependencies if provided
+          if [ -n "${{ inputs.additional_dependencies }}" ]; then
+            IFS=',' read -ra DEPS <<< "${{ inputs.additional_dependencies }}"
+            for dep in "${DEPS[@]}"; do
+              dep=$(echo "$dep" | xargs)  # Trim whitespace
+              if [ -n "$dep" ]; then
+                WITH_ARGS="$WITH_ARGS --with $dep"
+              fi
+            done
+          fi
+          
+          xportal build $WITH_ARGS --replace go.lumeweb.com/${{ steps.repo-name.outputs.REPO_NAME }}=$PLUGIN
