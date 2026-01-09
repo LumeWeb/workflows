@@ -16,12 +16,12 @@ runs:
   using: composite
   steps:
     - name: Setup Git
-      uses: ./.github/actions/setup-git
+      uses: LumeWeb/workflows/.github/actions/setup-git@develop
     - name: Setup JS
-      uses: ./.github/actions/setup-js
+      uses: LumeWeb/workflows/.github/actions/setup-js@develop
       with:
         node_version: ${{ inputs.node_version }}
     - name: Setup Go
-      uses: ./.github/actions/setup-go
+      uses: LumeWeb/workflows/.github/actions/setup-go@develop
       with:
         go_version: ${{ inputs.go_version }}
