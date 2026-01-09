@@ -1,0 +1,55 @@
+name: UI Update Workflow
+
+on:
+  workflow_call:
+    inputs:
+      commit_hash:
+        description: 'The commit hash to update to'
+        required: true
+        type: string
+      app_name:
+        description: 'The name of the app being updated (e.g., portal-frontend)'
+        required: true
+        type: string
+      repository:
+        description: 'The source repository (for PR description)'
+        required: true
+        type: string
+
+jobs:
+  update-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.0'
+
+      - name: Update Go dependency
+        run: |
+          COMMIT_HASH="${{ inputs.commit_hash }}"
+          APP_NAME="${{ inputs.app_name }}"
+
+          # Update the dependency
+          GOPROXY=direct go get "go.lumeweb.com/web/go/${APP_NAME}@${COMMIT_HASH}"
+          go mod tidy
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "chore: update UI dependency"
+          title: "chore: update UI dependency"
+          body: |
+            Updates UI dependency to latest changes.
+
+            Source: ${{ inputs.repository }}@${{ inputs.commit_hash }}
+          branch: deps/update-ui
+          base: develop
+          delete-branch: true
+          labels: |
+            dependencies
+            automated pr
