@@ -6,7 +6,7 @@ A centralized GitHub Actions workflow for updating Go UI dependencies across mul
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Sender: lume/web/.github/workflows/release-go.yml          │
+│  Sender: web/.github/workflows/release-go.yml          │
 │  - Detects modified Go modules                               │
 │  - Builds matrix of affected repositories                   │
 │  - Dispatches repository_dispatch events                    │
