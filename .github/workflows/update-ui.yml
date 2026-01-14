@@ -9,7 +9,7 @@ on:
         type: string
       app_name:
         description: 'The name of the app being updated (e.g., portal-frontend)'
-        required: true
+        required: false
         type: string
       repository:
         description: 'The source repository (for PR description)'
@@ -27,14 +27,47 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.23.0'
+          cache: true
 
       - name: Update Go dependency
         run: |
-          COMMIT_HASH="${{ inputs.commit_hash }}"
-          APP_NAME="${{ inputs.app_name }}"
+          set -e
+          set -o pipefail
+          
+          commit_hash="${{ inputs.commit_hash }}"
 
-          # Update the dependency
-          GOPROXY=direct go get "go.lumeweb.com/web/go/${APP_NAME}@${COMMIT_HASH}"
+          echo "Finding go.lumeweb.com/web/go/ dependencies..."
+          DEPS=$(go list -json -m all | jq -r 'select(.Path | startswith("go.lumeweb.com/web/go/")) | .Path')
+
+          if [ -z "$DEPS" ]; then
+            echo "No go.lumeweb.com/web/go/ dependencies found"
+            exit 0
+          fi
+
+          echo "Found dependencies:"
+          echo "$DEPS"
+
+          while IFS= read -r dep; do
+            echo "Updating $dep to commit $commit_hash..."
+
+            FULL_PATH="${dep}@${commit_hash}"
+            VERSION=$(go list -m -json "$FULL_PATH" | jq -r '.Version')
+
+            if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+              echo "Error: Could not get version for $FULL_PATH"
+              go list -m -json "$FULL_PATH"
+              exit 1
+            fi
+
+            echo "Pseudo-version: $VERSION"
+
+            REQUIRE_PATH="${dep}@${VERSION}"
+            go mod edit -require="$REQUIRE_PATH"
+
+            echo "Updated to: $REQUIRE_PATH"
+          done <<< "$DEPS"
+
+          echo "Running go mod tidy..."
           go mod tidy
 
       - name: Create Pull Request
