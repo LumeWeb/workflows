@@ -1,0 +1,48 @@
+name: Build Portal
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build:
+    name: Build Portal (No Plugins)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+    - name: Create Plugin Manifest
+      run: |
+        # Create manifest with portal version only (no plugins)
+        yq -n '.portalVersion = "develop"' > portal-plugins.yaml
+        
+        echo "Created portal-plugins.yaml (portal-only):"
+        cat portal-plugins.yaml
+    - name: Build Portal
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ghcr.io/lumeweb/portal-builder:ubuntu
+        options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist
+        run: build-portal
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: portal-build
+        path: dist/portal
+        retention-days: 1
+
+  run:
+    name: Run Portal (${{ matrix.db_type }})
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        db_type: [sqlite, mysql]
+    uses: ./.github/workflows/run-portal.yml
+    with:
+      db_type: ${{ matrix.db_type }}

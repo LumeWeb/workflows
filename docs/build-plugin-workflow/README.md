@@ -6,6 +6,14 @@ A centralized GitHub Actions workflow for building and testing LumeWeb portal pl
 
 This workflow handles building portal plugins using XPortal, supporting both standalone plugins and plugins with additional dependencies. It automatically extracts the repository name and builds the plugin with proper module replacements.
 
+## Available Workflows
+
+This repository provides two reusable workflows:
+
+1. **`build-plugin.yml`** - For building and testing portal plugins with the plugin included
+2. **`build-portal.yml`** - For building and testing the portal itself (no plugins)
+3. **`run-portal.yml`** - Internal reusable workflow for running portal tests (used by both workflows above)
+
 ## Quick Start
 
 ### Setting Up Your Repository
@@ -16,13 +24,13 @@ This workflow handles building portal plugins using XPortal, supporting both sta
 
    on:
      push:
-       branches: [ main, develop ]
+       branches: [ develop ]
      pull_request:
-       branches: [ main, develop ]
+       branches: [ develop ]
 
    jobs:
      build:
-       uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
+       uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@develop
    ```
 
 2. **For plugins with dependencies**:
@@ -31,22 +39,36 @@ This workflow handles building portal plugins using XPortal, supporting both sta
 
    on:
      push:
-       branches: [ main, develop ]
+       branches: [ develop ]
      pull_request:
-       branches: [ main, develop ]
+       branches: [ develop ]
 
    jobs:
      build:
-       uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
+       uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@develop
        with:
          additional_dependencies: go.lumeweb.com/portal-plugin-frontend,go.lumeweb.com/portal-plugin-app-shell
    ```
 
 ## Workflow Inputs
 
+### build-plugin.yml
+
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `additional_dependencies` | Additional plugin dependencies to include (comma-separated, format: `go.lumeweb.com/plugin-name,go.lumeweb.com/another-plugin`) | No | `''` |
+
+### build-portal.yml
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| None - This workflow builds the portal without any plugins | N/A | N/A | N/A |
+
+### run-portal.yml
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `db_type` | Database type to use (`sqlite` or `mysql`) | Yes | N/A |
 
 ## How It Works
 
@@ -184,6 +206,41 @@ jobs:
 - Check the build logs for specific error messages
 - Verify that the portal-builder image is accessible: `ghcr.io/lumeweb/portal-builder:latest`
 - Ensure the `portal-plugins.yaml` manifest is being created correctly
+
+## Portal-Only Testing
+
+For testing the portal itself without any plugins (useful for core portal development), use the `build-portal.yml` workflow:
+
+```yaml
+# .github/workflows/build-portal.yml
+name: Build Portal
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-portal.yml@main
+```
+
+This workflow:
+- Builds the portal without any plugins included
+- Runs the same comprehensive test suite (SQLite and MySQL)
+- Uses the same mock renterd server for testing
+- Follows the same environment configuration process
+
+## Workflow Architecture
+
+The workflows are designed with a DRY (Don't Repeat Yourself) principle:
+
+1. **`build-plugin.yml`** - Builds portal with plugins and runs tests
+2. **`build-portal.yml`** - Builds portal without plugins and runs tests
+3. **`run-portal.yml`** - Reusable workflow that handles running portal tests
+
+Both `build-plugin.yml` and `build-portal.yml` delegate the test execution to `run-portal.yml`, eliminating code duplication.
 
 ## Portal Testing
 
