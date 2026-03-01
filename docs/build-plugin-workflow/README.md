@@ -50,11 +50,25 @@ This workflow handles building portal plugins using XPortal, supporting both sta
 
 ## How It Works
 
-1. **Setup Go**: Installs Go 1.22.1 using the shared setup action
+The workflow consists of two jobs:
+
+### Build Job
+
+1. **Setup Go**: Installs Go 1.26 using the shared setup action
 2. **Install XPortal**: Installs the XPortal CLI tool
 3. **Checkout Repo**: Checks out the repository with submodules
 4. **Extract Repo Name**: Determines the plugin name from the repository
 5. **Build**: Builds the plugin using XPortal with proper module replacements
+6. **Upload Artifacts**: Saves build artifacts for the run job
+
+### Run Job
+
+1. **Setup Go**: Installs Go 1.22.1
+2. **Install XPortal**: Installs the XPortal CLI tool
+3. **Checkout Repo**: Checks out the repository with submodules
+4. **Download Artifacts**: Retrieves build artifacts from the build job
+5. **Generate Environment Variables**: Merges core and plugin configs, converts to env vars
+6. **Run Portal**: Runs the portal with binding detection and graceful shutdown
 
 ### Module Replacement
 
@@ -156,6 +170,31 @@ jobs:
 ### XPortal installation fails
 - Check that the XPortal package is available at `go.lumeweb.com/xportal/cmd/xportal`
 - Verify Go version compatibility (1.22.1)
+
+## Portal Testing
+
+The workflow includes a `run` job that executes the built portal for testing.
+
+### Configuration
+
+**Core Config** (in LumeWeb/workflows repo):
+- `.github/config/portal-core.yml` - Standard configuration for all plugins
+
+**Plugin Config** (optional, in plugin repo):
+- `.github/portal-config.yml` - Plugin-specific configuration overrides
+
+### How It Works
+
+The run job:
+1. Starts the portal in the background
+2. Waits for it to bind to the configured port
+3. Once bound, gracefully shuts down the portal
+4. Returns the actual exit code
+
+This approach:
+- Does not use timeout (which would mask error codes)
+- Detects successful binding to determine success
+- Preserves actual exit codes for proper error reporting
 
 ## Support
 
