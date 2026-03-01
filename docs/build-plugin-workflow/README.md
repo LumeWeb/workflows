@@ -54,40 +54,52 @@ The workflow consists of two jobs:
 
 ### Build Job
 
-1. **Setup Go**: Installs Go 1.26 using the shared setup action
-2. **Install XPortal**: Installs the XPortal CLI tool
-3. **Checkout Repo**: Checks out the repository with submodules
-4. **Extract Repo Name**: Determines the plugin name from the repository
-5. **Build**: Builds the plugin using XPortal with proper module replacements
-6. **Upload Artifacts**: Saves build artifacts for the run job
+1. **Build Environment**: Uses the `ghcr.io/lumeweb/portal-builder:latest` Docker container which includes Go 1.26, XPortal CLI, and build dependencies
+2. **Checkout Repo**: Checks out the repository with submodules
+3. **Extract Repo Name**: Determines the plugin name from the repository
+4. **Create Plugin Manifest**: Generates a `portal-plugins.yaml` manifest with the current plugin and any additional dependencies
+5. **Build Portal**: Runs the `build-portal` script which uses XPortal to compile the portal binary
+6. **Upload Artifacts**: Saves the compiled portal binary for the run job
 
 ### Run Job
 
-1. **Setup Go**: Installs Go 1.22.1
-2. **Install XPortal**: Installs the XPortal CLI tool
-3. **Checkout Repo**: Checks out the repository with submodules
-4. **Download Artifacts**: Retrieves build artifacts from the build job
-5. **Generate Environment Variables**: Merges core and plugin configs, converts to env vars
-6. **Run Portal**: Runs the portal with binding detection and graceful shutdown
+1. **Checkout Repo**: Checks out the repository with submodules
+2. **Download Artifacts**: Retrieves the compiled portal binary from the build job
+3. **Checkout Workflows for Config**: Checks out the LumeWeb/workflows repository to access core configuration files
+4. **Generate Environment Variables**: Merges core and plugin configs, converts to env vars using Python script
+5. **Run Mock Renterd Server**: Starts a mock renterd server for testing
+6. **Run Portal**: Executes the portal with binding detection and graceful shutdown
 
-### Module Replacement
+### Portal Builder Container
 
-The workflow automatically creates a module replacement for the current plugin:
+The workflow uses the `ghcr.io/lumeweb/portal-builder:latest` Docker container which provides:
+- Go 1.26
+- XPortal CLI tool
+- Pre-configured build environment
+- Go module cache for faster builds
+- YAML validation for plugin manifests
+
+### Plugin Manifest
+
+The workflow creates a `portal-plugins.yaml` manifest file with the plugin configuration:
+
+```yaml
+portalVersion: develop
+plugins:
+  - module: go.lumeweb.com/your-plugin-name
+    version: latest
 ```
---replace go.lumeweb.com/your-plugin-name=/path/to/plugin
-```
 
-This allows XPortal to use the local version of the plugin during the build process.
-
-### Additional Dependencies
-
-When `additional_dependencies` is provided, the workflow adds `--with` flags for each dependency:
-```bash
-xportal build \
-  --with go.lumeweb.com/your-plugin-name \
-  --with go.lumeweb.com/portal-plugin-frontend \
-  --with go.lumeweb.com/portal-plugin-app-shell \
-  --replace go.lumeweb.com/your-plugin-name=/path/to/plugin
+When `additional_dependencies` is provided, additional plugin entries are added:
+```yaml
+portalVersion: develop
+plugins:
+  - module: go.lumeweb.com/your-plugin-name
+    version: latest
+  - module: go.lumeweb.com/portal-plugin-frontend
+    version: latest
+  - module: go.lumeweb.com/portal-plugin-app-shell
+    version: latest
 ```
 
 ## Example Usage
@@ -155,6 +167,7 @@ jobs:
 - GitHub Actions enabled in your repository
 - Go module properly configured
 - Plugin follows LumeWeb plugin structure
+- No additional setup required - the portal-builder container provides all build dependencies
 
 ## Troubleshooting
 
@@ -167,9 +180,10 @@ jobs:
 - Ensure dependencies are comma-separated with no spaces or single spaces after commas
 - Example: `go.lumeweb.com/plugin-1,go.lumeweb.com/plugin-2` or `go.lumeweb.com/plugin-1, go.lumeweb.com/plugin-2`
 
-### XPortal installation fails
-- Check that the XPortal package is available at `go.lumeweb.com/xportal/cmd/xportal`
-- Verify Go version compatibility (1.22.1)
+### Build fails in container
+- Check the build logs for specific error messages
+- Verify that the portal-builder image is accessible: `ghcr.io/lumeweb/portal-builder:latest`
+- Ensure the `portal-plugins.yaml` manifest is being created correctly
 
 ## Portal Testing
 
@@ -186,19 +200,32 @@ The workflow includes a `run` job that executes the built portal for testing.
 ### How It Works
 
 The run job:
-1. Starts the portal in the background
-2. Waits for it to bind to the configured port
-3. Once bound, gracefully shuts down the portal
-4. Returns the actual exit code
+1. Downloads the compiled portal binary from the build job
+2. Generates environment variables from YAML configuration files
+3. Starts a mock renterd server for testing
+4. Starts the portal in the background
+5. Waits for it to bind to the configured port
+6. Once bound, gracefully shuts down the portal
+7. Returns the actual exit code
 
 This approach:
 - Does not use timeout (which would mask error codes)
 - Detects successful binding to determine success
 - Preserves actual exit codes for proper error reporting
+- Uses the actual compiled binary for realistic testing
+
+### Container Build Benefits
+
+Using the portal-builder container provides:
+- Consistent build environment across all plugins
+- Faster builds due to pre-populated Go module cache
+- No need to install Go or XPortal in each workflow run
+- Alpine Linux base for minimal footprint
 
 ## Support
 
 For issues or questions:
 - Check the workflow logs in GitHub Actions
+- Review the [portal-builder documentation](https://github.com/LumeWeb/portal-builder)
 - Review the [XPortal documentation](https://github.com/LumeWeb/xportal)
 - Open an issue in the [LumeWeb/workflows](https://github.com/LumeWeb/workflows) repository
