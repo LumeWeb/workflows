@@ -31,7 +31,7 @@ jobs:
         yq -n '
           .portalVersion = "develop" |
           .plugins[0].module = "go.lumeweb.com/${{ steps.repo-name.outputs.REPO_NAME }}" |
-          .plugins[0].version = "latest"
+          .plugins[0].version = "${{ github.sha }}"
         ' > portal-plugins.yaml
         
         # Add additional dependencies if provided
@@ -41,7 +41,15 @@ jobs:
           for dep in "${DEPS[@]}"; do
             dep=$(echo "$dep" | xargs)
             if [ -n "$dep" ]; then
-              yq -i ".plugins[$INDEX].module = \"$dep\" | .plugins[$INDEX].version = \"latest\"" portal-plugins.yaml
+              # Check if dependency has explicit version with @
+              if [[ "$dep" == *@* ]]; then
+                MODULE="${dep%@*}"
+                VERSION="${dep##*@}"
+              else
+                MODULE="$dep"
+                VERSION="latest"
+              fi
+              yq -i ".plugins[$INDEX].module = \"$MODULE\" | .plugins[$INDEX].version = \"$VERSION\"" portal-plugins.yaml
               INDEX=$((INDEX + 1))
             fi
           done
