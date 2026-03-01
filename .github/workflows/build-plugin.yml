@@ -106,30 +106,32 @@ jobs:
         
         # Create MySQL config if needed
         if [ "${{ matrix.db_type }}" = "mysql" ]; then
-          cat > portal-mysql.yml << EOF
-        core:
-          db:
-            type: "mysql"
-            host: "127.0.0.1"
-            port: 3306
-            username: "portal"
-            password: "portal"
-            name: "portal"
-            charset: "utf8mb4"
-        EOF
-          WORKFLOWS_CORE_CONFIG="portal-mysql.yml"
+          yq -n '
+            .core.db.type = "mysql" |
+            .core.db.host = "127.0.0.1" |
+            .core.db.port = 3306 |
+            .core.db.username = "portal" |
+            .core.db.password = "portal" |
+            .core.db.name = "portal" |
+            .core.db.charset = "utf8mb4"
+          ' > portal-mysql.yml
         fi
         
         # Merge configs and convert to env vars
-        CONFIG_FILES="$WORKFLOWS_CORE_CONFIG"
+        CONFIG_FILES=("$WORKFLOWS_CORE_CONFIG")
+        
+        # Add MySQL config if it exists
+        if [ "${{ matrix.db_type }}" = "mysql" ] && [ -f "portal-mysql.yml" ]; then
+          CONFIG_FILES+=("portal-mysql.yml")
+        fi
         
         # Add plugin config if it exists
         if [ -f "$PLUGIN_CONFIG" ]; then
-          CONFIG_FILES="$CONFIG_FILES $PLUGIN_CONFIG"
+          CONFIG_FILES+=("$PLUGIN_CONFIG")
         fi
         
         # Convert YAML to env vars using Python script
-        for config_file in $CONFIG_FILES; do
+        for config_file in "${CONFIG_FILES[@]}"; do
           python3 "$YAML_TO_ENV_SCRIPT" "$config_file" .env
         done
         
@@ -139,8 +141,8 @@ jobs:
         set +a
         
         # Export for subsequent steps
-        echo "PORTAL_PORT=${PORTAL_PORT:-8080}" >> $GITHUB_ENV
-        echo "PORTAL_HOST=${PORTAL_HOST:-localhost}" >> $GITHUB_ENV
+        echo "PORTAL_PORT=${PORTAL_PORT:-8080}" >> "$GITHUB_ENV"
+        echo "PORTAL_HOST=${PORTAL_HOST:-localhost}" >> "$GITHUB_ENV"
         
         echo "Environment configured (DB: ${{ matrix.db_type }}):"
         cat .env
@@ -148,7 +150,7 @@ jobs:
       run: |
         python3 workflows-config/scripts/mock-renterd.py 8081 &
         MOCK_PID=$!
-        echo "MOCK_PID=$MOCK_PID" >> $GITHUB_ENV
+        echo "MOCK_PID=$MOCK_PID" >> "$GITHUB_ENV"
         echo "Mock renterd server started (PID: $MOCK_PID)"
         
         # Wait for mock server to be ready
@@ -159,14 +161,14 @@ jobs:
         . .env
         
         # Run portal in background
-        ./dist/portal &
+        ./portal &
         PID=$!
         
         # Wait for port binding
         TIMEOUT=30
         count=0
         while [ $count -lt $TIMEOUT ]; do
-          if nc -z localhost ${PORTAL_PORT} 2>/dev/null; then
+          if nc -z localhost "${PORTAL_PORT}" 2>/dev/null; then
             echo "✓ Portal successfully bound to port ${PORTAL_PORT}"
             break
           fi
@@ -182,7 +184,7 @@ jobs:
         fi
         
         # Graceful shutdown
-        kill -TERM $PID 2>/dev/null || true
-        kill -TERM $MOCK_PID 2>/dev/null || true
+        kill -TERM "$PID" 2>/dev/null || true
+        kill -TERM "$MOCK_PID" 2>/dev/null || true
         wait $PID
         exit $?
