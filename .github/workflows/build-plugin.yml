@@ -165,6 +165,9 @@ jobs:
         sleep 2
     - name: Run Portal
       run: |
+        # Make portal executable
+        chmod +x ./portal
+        
         # Run the built portal binary with environment variables
         . .env
         
