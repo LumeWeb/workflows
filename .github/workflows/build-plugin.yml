@@ -31,7 +31,7 @@ jobs:
         yq -n '
           .portalVersion = "develop" |
           .plugins[0].module = "go.lumeweb.com/${{ steps.repo-name.outputs.REPO_NAME }}" |
-          .plugins[0].version = "${{ github.sha }}"
+          .plugins[0].version = "${{ github.event.pull_request.head.sha || github.sha }}"
         ' > portal-plugins.yaml
         
         # Add additional dependencies if provided
