@@ -72,7 +72,6 @@ jobs:
 
   run:
     name: Run Portal (${{ matrix.db_type }})
-    runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:

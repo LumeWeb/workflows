@@ -78,9 +78,9 @@ jobs:
           python3 "$YAML_TO_ENV_SCRIPT" "$config_file" .env
         done
         
-        # Source the env file
+        # Source the env file directly to make variables available
         set -a
-        bash -c '. .env'
+        . .env
         set +a
         
         # Export for subsequent steps
