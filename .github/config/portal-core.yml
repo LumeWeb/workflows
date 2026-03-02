@@ -26,3 +26,9 @@ core.mail:
 core.storage.sia:
   url: "http://localhost:8081/"
   key: "0"
+
+# WARNING: This is a TEST seed for CI/CD purposes only.
+# This seed is INTENTIONALLY COMPROMISED and MUST NOT be used in production.
+# DO NOT use this seed for any real deployments or secure operations.
+core.identity:
+  seed: "victory coin oven horn blade sausage large jungle differ talent coral jewel"
