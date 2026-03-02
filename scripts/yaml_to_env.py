@@ -44,8 +44,10 @@ def yaml_to_env(yaml_file, output_file=None):
         # Portal expects PORTAL__ prefix for all env vars
         # Convert to uppercase and format
         env_key = key.upper()
-        # Convert value to string
+        # Convert value to string and quote it
         env_value = str(value)
+        # Always quote values to ensure proper shell handling
+        env_value = f'"{env_value}"'
         env_vars.append(f"export PORTAL__{env_key}={env_value}")
     
     # Output
