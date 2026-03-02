@@ -18,8 +18,8 @@ jobs:
           submodules: true
     - name: Create Plugin Manifest
       run: |
-        # Create manifest with portal version only (no plugins)
-        yq -n '.portalVersion = "develop"' > portal-plugins.yaml
+        # Create manifest with portal version and empty plugins array
+        yq -n '.portalVersion = "develop" | .plugins = []' > portal-plugins.yaml
         
         echo "Created portal-plugins.yaml (portal-only):"
         cat portal-plugins.yaml
