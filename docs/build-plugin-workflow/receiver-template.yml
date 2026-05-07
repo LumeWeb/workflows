@@ -16,3 +16,5 @@ jobs:
     # Uncomment and add dependencies if your plugin requires them:
     # with:
     #   additional_dependencies: go.lumeweb.com/portal-plugin-core
+    # Uncomment and add replacements if you need Go module replacements:
+    #   replacements: github.com/original/module@v1.0.0=github.com/fork/module@v1.0.1
