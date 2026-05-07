@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ''
+      replacements:
+        description: 'Go module replacements (comma-separated, format: old_module@version=new_module@version)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -55,14 +60,43 @@ jobs:
           done
         fi
         
+        # Add replacements if provided
+        if [ -n "${{ inputs.replacements }}" ]; then
+          IFS=',' read -ra REPS <<< "${{ inputs.replacements }}"
+          REP_INDEX=0
+          for rep in "${REPS[@]}"; do
+            rep=$(echo "$rep" | xargs)
+            if [ -n "$rep" ]; then
+              OLD="${rep%%=*}"
+              NEW="${rep#*=}"
+              if [ -n "$OLD" ] && [ -n "$NEW" ]; then
+                yq -i ".replacements[$REP_INDEX].old = \"$OLD\" | .replacements[$REP_INDEX].new = \"$NEW\"" portal-plugins.yaml
+                REP_INDEX=$((REP_INDEX + 1))
+              fi
+            fi
+          done
+        fi
+        
         echo "Created portal-plugins.yaml:"
         cat portal-plugins.yaml
+    - name: Generate Code
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ghcr.io/lumeweb/portal-builder:ubuntu
+        options: -v ${{ github.workspace }}:/workspace
+        run: go generate ./...
     - name: Build Portal
       uses: addnab/docker-run-action@v3
       with:
         image: ghcr.io/lumeweb/portal-builder:ubuntu
         options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist
         run: build-portal
+    - name: Run Tests
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ghcr.io/lumeweb/portal-builder:ubuntu
+        options: -v ${{ github.workspace }}:/workspace
+        run: go test ./...
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:

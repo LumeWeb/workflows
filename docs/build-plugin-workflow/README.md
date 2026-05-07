@@ -57,6 +57,7 @@ This repository provides two reusable workflows:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `additional_dependencies` | Additional plugin dependencies to include (comma-separated, format: `go.lumeweb.com/plugin-name,go.lumeweb.com/another-plugin`) | No | `''` |
+| `replacements` | Go module replacements (comma-separated, format: `old_module@version=new_module@version`) | No | `''` |
 
 ### build-portal.yml
 
@@ -124,6 +125,17 @@ plugins:
     version: latest
 ```
 
+When `replacements` is provided, a `replacements` array is added (equivalent to `go.mod` replace directives):
+```yaml
+portalVersion: develop
+plugins:
+  - module: go.lumeweb.com/your-plugin-name
+    version: latest
+replacements:
+  - old: github.com/original/module@v1.0.0
+    new: github.com/fork/module@v1.0.1
+```
+
 ## Example Usage
 
 ### Basic Plugin Build
@@ -160,6 +172,25 @@ jobs:
     uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
     with:
       additional_dependencies: go.lumeweb.com/portal-plugin-frontend,go.lumeweb.com/portal-plugin-app-shell,go.lumeweb.com/portal-plugin-dashboard
+```
+
+### Plugin with Module Replacements
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
+    with:
+      replacements: github.com/original/module@v1.0.0=github.com/fork/module@v1.0.1,github.com/another/dep=github.com/replace/dep@v2.0.0
 ```
 
 ### Manual Trigger with Dependencies
