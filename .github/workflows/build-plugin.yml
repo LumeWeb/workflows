@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ''
+      setup_script:
+        description: 'Bash script to run inside the container before generate/build/test. Use for installing extra deps (e.g. Kubo, jq).'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -79,24 +84,31 @@ jobs:
         
         echo "Created portal-plugins.yaml:"
         cat portal-plugins.yaml
-    - name: Generate Code
+    - name: Write Setup Script
+      run: |
+        cat > /tmp/setup.sh << 'SETUPEOF'
+        ${{ inputs.setup_script }}
+        SETUPEOF
+        chmod +x /tmp/setup.sh
+    - name: Setup + Generate + Build + Test
       uses: addnab/docker-run-action@v3
       with:
         image: ghcr.io/lumeweb/portal-builder:ubuntu
-        options: -v ${{ github.workspace }}:/workspace
-        run: go generate ./...
-    - name: Build Portal
-      uses: addnab/docker-run-action@v3
-      with:
-        image: ghcr.io/lumeweb/portal-builder:ubuntu
-        options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist
-        run: build-portal
-    - name: Run Tests
-      uses: addnab/docker-run-action@v3
-      with:
-        image: ghcr.io/lumeweb/portal-builder:ubuntu
-        options: -v ${{ github.workspace }}:/workspace
-        run: go test ./...
+        options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist -v /tmp/setup.sh:/tmp/setup.sh
+        shell: bash
+        run: |
+          set -e
+          if [ -s /tmp/setup.sh ]; then
+            echo "=== Running setup script ==="
+            bash /tmp/setup.sh
+            echo "=== Setup complete ==="
+          fi
+          echo "=== Running go generate ==="
+          go generate ./...
+          echo "=== Building portal ==="
+          build-portal
+          echo "=== Running tests ==="
+          go test $(go list ./... | grep -v bench_tests)
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
