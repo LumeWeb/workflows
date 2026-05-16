@@ -58,6 +58,7 @@ This repository provides two reusable workflows:
 |-------|-------------|----------|---------|
 | `additional_dependencies` | Additional plugin dependencies to include (comma-separated, format: `go.lumeweb.com/plugin-name,go.lumeweb.com/another-plugin`) | No | `''` |
 | `replacements` | Go module replacements (comma-separated, format: `old_module@version=new_module@version`) | No | `''` |
+| `setup_script` | Bash script to run inside the container before generate/build/test. Use for installing extra deps (e.g. Kubo, jq). | No | `''` |
 
 ### build-portal.yml
 
@@ -77,11 +78,15 @@ The workflow consists of two jobs:
 
 ### Build Job
 
-1. **Build Environment**: Uses the `ghcr.io/lumeweb/portal-builder:latest` Docker container which includes Go 1.26, XPortal CLI, and build dependencies
+1. **Build Environment**: Uses the `ghcr.io/lumeweb/portal-builder:ubuntu` Docker container which includes Go 1.26, XPortal CLI, and build dependencies
 2. **Checkout Repo**: Checks out the repository with submodules
 3. **Extract Repo Name**: Determines the plugin name from the repository
 4. **Create Plugin Manifest**: Generates a `portal-plugins.yaml` manifest with the current plugin and any additional dependencies
-5. **Build Portal**: Runs the `build-portal` script which uses XPortal to compile the portal binary
+5. **Setup + Generate + Build + Test**: Runs all steps in a single container session:
+   - Runs the `setup_script` (if provided) to install extra dependencies
+   - Runs `go generate ./...` to generate code
+   - Runs `build-portal` to compile the portal binary
+   - Runs `go test` to run the test suite
 6. **Upload Artifacts**: Saves the compiled portal binary for the run job
 
 ### Run Job
@@ -135,6 +140,22 @@ replacements:
   - old: github.com/original/module@v1.0.0
     new: github.com/fork/module@v1.0.1
 ```
+
+When `setup` is provided, the inline bash script runs inside the container before `go generate`, build, and test. This is useful for plugins that need extra system dependencies:
+```yaml
+portalVersion: develop
+setup: |
+  apt-get update && apt-get install -y jq
+  wget -q https://github.com/ipfs/kubo/releases/download/v0.34.0/kubo_v0.34.0_linux-amd64.tar.gz
+  tar -xzf kubo_v0.34.0_linux-amd64.tar.gz
+  cp kubo/ipfs /usr/local/bin/
+  ipfs init
+plugins:
+  - module: go.lumeweb.com/portal-plugin-ipfs
+    version: latest
+```
+
+> **Note:** The `setup_script` workflow input takes precedence over the manifest `setup` field. When using the shared workflow, prefer `setup_script` input over manifest `setup`.
 
 ## Example Usage
 
@@ -192,6 +213,35 @@ jobs:
     with:
       replacements: github.com/original/module@v1.0.0=github.com/fork/module@v1.0.1,github.com/another/dep=github.com/replace/dep@v2.0.0
 ```
+
+### Plugin with Custom Environment Setup
+
+When your plugin requires extra system dependencies (e.g. Kubo for IPFS, jq for test fixtures), use the `setup_script` input. The script runs inside the build container before `go generate`, `build-portal`, and `go test`.
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@develop
+    with:
+      setup_script: |
+        apt-get update && apt-get install -y jq
+        KUBO_VERSION=$(wget -qO- https://github.com/ipfs/kubo/releases/latest | grep -oP 'tag/\K[^"]+' | head -1)
+        wget -q https://github.com/ipfs/kubo/releases/download/${KUBO_VERSION}/kubo_${KUBO_VERSION}_linux-amd64.tar.gz
+        tar -xzf kubo_${KUBO_VERSION}_linux-amd64.tar.gz
+        cp kubo/ipfs /usr/local/bin/
+        ipfs init
+```
+
+The `setup_script` can also be specified in the plugin manifest's `setup` field (see [Plugin Manifest](#plugin-manifest) below). The workflow input takes precedence.
 
 ### Manual Trigger with Dependencies
 

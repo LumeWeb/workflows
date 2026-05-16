@@ -23,12 +23,20 @@ jobs:
         
         echo "Created portal-plugins.yaml (portal-only):"
         cat portal-plugins.yaml
-    - name: Build Portal
+    - name: Generate + Build + Test
       uses: addnab/docker-run-action@v3
       with:
         image: ghcr.io/lumeweb/portal-builder:ubuntu
         options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist
-        run: build-portal
+        shell: bash
+        run: |
+          set -e
+          echo "=== Running go generate ==="
+          go generate ./...
+          echo "=== Building portal ==="
+          build-portal
+          echo "=== Running tests ==="
+          go test $(go list ./... | grep -v bench_tests)
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:

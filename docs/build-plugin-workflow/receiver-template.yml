@@ -13,8 +13,9 @@ jobs:
   build:
     uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@develop
     secrets: inherit
-    # Uncomment and add dependencies if your plugin requires them:
+    # Uncomment and customize as needed:
     # with:
     #   additional_dependencies: go.lumeweb.com/portal-plugin-core
-    # Uncomment and add replacements if you need Go module replacements:
     #   replacements: github.com/original/module@v1.0.0=github.com/fork/module@v1.0.1
+    #   setup_script: |
+    #     apt-get update && apt-get install -y jq
