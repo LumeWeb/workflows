@@ -90,7 +90,7 @@ jobs:
         ${{ inputs.setup_script }}
         SETUPEOF
         chmod +x /tmp/setup.sh
-    - name: Setup + Generate + Build + Test
+    - name: Setup + Generate + Test + Build
       uses: addnab/docker-run-action@v3
       with:
         image: ghcr.io/lumeweb/portal-builder:ubuntu
@@ -105,10 +105,10 @@ jobs:
           fi
           echo "=== Running go generate ==="
           go generate ./...
-          echo "=== Building portal ==="
-          build-portal
           echo "=== Running tests ==="
           go test $(go list ./... | grep -v bench_tests)
+          echo "=== Building portal ==="
+          build-portal
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
