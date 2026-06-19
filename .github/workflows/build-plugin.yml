@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
           submodules: true
     - name: Extract Repo Name
@@ -110,7 +110,7 @@ jobs:
           echo "=== Building portal ==="
           build-portal
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: portal-build
         path: dist/portal
