@@ -17,13 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT }}
 
       - name: Install Knope
-        uses: knope-dev/action@v2.1.0
+        uses: knope-dev/action@v2.1.2
         with:
           version: ${{ inputs.knope_version }}
 
