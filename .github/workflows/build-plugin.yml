@@ -94,7 +94,7 @@ jobs:
       uses: addnab/docker-run-action@v3
       with:
         image: ghcr.io/lumeweb/portal-builder:ubuntu
-        options: -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist -v /tmp/setup.sh:/tmp/setup.sh
+        options: -e GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn -v ${{ github.workspace }}:/workspace -v ${{ github.workspace }}/dist:/dist -v /tmp/setup.sh:/tmp/setup.sh
         shell: bash
         run: |
           set -e
