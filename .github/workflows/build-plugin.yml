@@ -115,9 +115,19 @@ jobs:
               if [ "$i" != "1" ] && [ "$OUTPUT_DIR" != "." ]; then
                   rm -rf "$OUTPUT_DIR/portal"
               fi
-              if build-portal > "$log" 2>&1; then
+              set +e
+              build-portal > "$log" 2>&1
+              rc=$?
+              set -e
+              if [ "$rc" -eq 0 ] && ! grep -q '\[FATAL\]' "$log" >/dev/null 2>&1; then
                   cat "$log"
-                  break
+                  if [ -d "$OUTPUT_DIR/portal" ]; then
+                      break
+                  fi
+                  echo "Build log looks clean but artifact directory $OUTPUT_DIR/portal is missing"
+                  if [ "$i" = "5" ]; then
+                      exit 1
+                  fi
               fi
               if grep -qiE 'sum\.golang\.org/.*: 500 Internal Server Error|checksum database.*internal server error' "$log" >/dev/null 2>&1; then
                   if [ "$i" = "5" ]; then
