@@ -121,10 +121,10 @@ jobs:
               set -e
               if [ "$rc" -eq 0 ] && ! grep -q '\[FATAL\]' "$log" >/dev/null 2>&1; then
                   cat "$log"
-                  if [ -d "$OUTPUT_DIR/portal" ]; then
+                  if [ -f "$OUTPUT_DIR/portal" ]; then
                       break
                   fi
-                  echo "Build log looks clean but artifact directory $OUTPUT_DIR/portal is missing"
+                  echo "Build log looks clean but artifact $OUTPUT_DIR/portal is missing"
                   if [ "$i" = "5" ]; then
                       exit 1
                   fi
