@@ -59,12 +59,13 @@ This repository provides two reusable workflows:
 | `additional_dependencies` | Additional plugin dependencies to include (comma-separated, format: `go.lumeweb.com/plugin-name,go.lumeweb.com/another-plugin`) | No | `''` |
 | `replacements` | Go module replacements (comma-separated, format: `old_module@version=new_module@version`) | No | `''` |
 | `setup_script` | Bash script to run inside the container before generate/build/test. Use for installing extra deps (e.g. Kubo, jq). | No | `''` |
+| `build_tags` | Go build tags to apply when compiling the portal binary (comma-separated, format: `foo,bar`). | No | `''` |
 
 ### build-portal.yml
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| None - This workflow builds the portal without any plugins | N/A | N/A | N/A |
+| `build_tags` | Go build tags to apply when compiling the portal binary (comma-separated, format: `foo,bar`). | No | `''` |
 
 ### run-portal.yml
 
@@ -141,6 +142,17 @@ replacements:
     new: github.com/fork/module@v1.0.1
 ```
 
+When `build_tags` is provided, a `buildTags` array is added (passed to `go build -tags`; the default `nobadger` tag is always applied on top):
+```yaml
+portalVersion: develop
+plugins:
+  - module: go.lumeweb.com/your-plugin-name
+    version: latest
+buildTags:
+  - foo
+  - bar
+```
+
 When `setup` is provided, the inline bash script runs inside the container before `go generate`, build, and test. This is useful for plugins that need extra system dependencies:
 ```yaml
 portalVersion: develop
@@ -212,6 +224,25 @@ jobs:
     uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
     with:
       replacements: github.com/original/module@v1.0.0=github.com/fork/module@v1.0.1,github.com/another/dep=github.com/replace/dep@v2.0.0
+```
+
+### Plugin with Go Build Tags
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
+    with:
+      build_tags: foo,bar
 ```
 
 ### Plugin with Custom Environment Setup

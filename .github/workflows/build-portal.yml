@@ -2,6 +2,12 @@ name: Build Portal
 
 on:
   workflow_call:
+    inputs:
+      build_tags:
+        description: 'Go build tags to apply when compiling the portal binary (comma-separated, format: foo,bar).'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -20,6 +26,19 @@ jobs:
       run: |
         # Create manifest with portal version and empty plugins array
         yq -n '.portalVersion = "develop" | .plugins = []' > portal-plugins.yaml
+        
+        # Add build tags if provided
+        if [ -n "${{ inputs.build_tags }}" ]; then
+          IFS=',' read -ra TAGS <<< "${{ inputs.build_tags }}"
+          TAG_INDEX=0
+          for tag in "${TAGS[@]}"; do
+            tag=$(echo "$tag" | xargs)
+            if [ -n "$tag" ]; then
+              yq -i ".buildTags[$TAG_INDEX] = \"$tag\"" portal-plugins.yaml
+              TAG_INDEX=$((TAG_INDEX + 1))
+            fi
+          done
+        fi
         
         echo "Created portal-plugins.yaml (portal-only):"
         cat portal-plugins.yaml
