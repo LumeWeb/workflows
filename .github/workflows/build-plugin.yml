@@ -112,9 +112,9 @@ jobs:
           for ex in "${EXCLS[@]}"; do
             ex=$(echo "$ex" | xargs)
             if [ -n "$ex" ]; then
-              MODULE="${ex%@*}"
-              VERSION="${ex##*@}"
-              if [ -n "$MODULE" ] && [ -n "$VERSION" ]; then
+              if [[ "$ex" == *@* ]]; then
+                MODULE="${ex%@*}"
+                VERSION="${ex##*@}"
                 yq -i ".excludes[$EXCL_INDEX].module = \"$MODULE\" | .excludes[$EXCL_INDEX].version = \"$VERSION\"" portal-plugins.yaml
                 EXCL_INDEX=$((EXCL_INDEX + 1))
               fi
