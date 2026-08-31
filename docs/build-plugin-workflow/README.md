@@ -60,12 +60,14 @@ This repository provides two reusable workflows:
 | `replacements` | Go module replacements (comma-separated, format: `old_module@version=new_module@version`) | No | `''` |
 | `setup_script` | Bash script to run inside the container before generate/build/test. Use for installing extra deps (e.g. Kubo, jq). | No | `''` |
 | `build_tags` | Go build tags to apply when compiling the portal binary (comma-separated, format: `foo,bar`). | No | `''` |
+| `excludes` | Go module exclusion directives (comma-separated, format: `module@version`). | No | `''` |
 
 ### build-portal.yml
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `build_tags` | Go build tags to apply when compiling the portal binary (comma-separated, format: `foo,bar`). | No | `''` |
+| `excludes` | Go module exclusion directives (comma-separated, format: `module@version`). | No | `''` |
 
 ### run-portal.yml
 
@@ -151,6 +153,17 @@ plugins:
 buildTags:
   - foo
   - bar
+```
+
+When `excludes` is provided, an `excludes` array is added (each entry adds a `go mod edit -exclude` directive preventing that module version from being selected):
+```yaml
+portalVersion: develop
+plugins:
+  - module: go.lumeweb.com/your-plugin-name
+    version: latest
+excludes:
+  - module: github.com/foo/bar
+    version: v1.2.0
 ```
 
 When `setup` is provided, the inline bash script runs inside the container before `go generate`, build, and test. This is useful for plugins that need extra system dependencies:
@@ -243,6 +256,25 @@ jobs:
     uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
     with:
       build_tags: foo,bar
+```
+
+### Plugin with Module Excludes
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-plugin.yml@main
+    with:
+      excludes: github.com/foo/bar@v1.2.0,github.com/baz/qux@v2.0.0
 ```
 
 ### Plugin with Custom Environment Setup

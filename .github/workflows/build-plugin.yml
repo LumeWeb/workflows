@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: ''
+      excludes:
+        description: 'Go module exclusion directives (comma-separated, format: module@version).'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -96,6 +101,23 @@ jobs:
             if [ -n "$tag" ]; then
               yq -i ".buildTags[$TAG_INDEX] = \"$tag\"" portal-plugins.yaml
               TAG_INDEX=$((TAG_INDEX + 1))
+            fi
+          done
+        fi
+        
+        # Add excludes if provided
+        if [ -n "${{ inputs.excludes }}" ]; then
+          IFS=',' read -ra EXCLS <<< "${{ inputs.excludes }}"
+          EXCL_INDEX=0
+          for ex in "${EXCLS[@]}"; do
+            ex=$(echo "$ex" | xargs)
+            if [ -n "$ex" ]; then
+              MODULE="${ex%@*}"
+              VERSION="${ex##*@}"
+              if [ -n "$MODULE" ] && [ -n "$VERSION" ]; then
+                yq -i ".excludes[$EXCL_INDEX].module = \"$MODULE\" | .excludes[$EXCL_INDEX].version = \"$VERSION\"" portal-plugins.yaml
+                EXCL_INDEX=$((EXCL_INDEX + 1))
+              fi
             fi
           done
         fi
