@@ -27,6 +27,7 @@ A centralized workflow for building and testing LumeWeb portal plugins. This wor
 - Support for additional plugin dependencies (comma-separated)
 - Support for Go module replacements
 - Support for Go build tags (comma-separated)
+- Support for Go module exclusion directives (comma-separated)
 - Triggers on push and pull requests
 
 #### How It Works
