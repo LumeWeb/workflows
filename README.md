@@ -25,6 +25,8 @@ A centralized workflow for building and testing LumeWeb portal plugins. This wor
 - Standardized build process for all portal plugins
 - Automatic module replacement for local development
 - Support for additional plugin dependencies (comma-separated)
+- Support for Go module replacements
+- Support for Go build tags (comma-separated)
 - Triggers on push and pull requests
 
 #### How It Works
